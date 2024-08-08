@@ -39,7 +39,7 @@ static ssize_t show_psu_pgood_stat(struct device *dev,
         struct device_attribute *attr, char *buf)
 {
     struct anode_ctrl_priv *priv = dev_get_drvdata(dev);
-    dev_info(dev, "PSU powergood  status is in %s state.", ((priv->rf_therm_alert_val)==0)?"bad":"good");
+    dev_info(dev, "PSU powergood  status is in %s state.", ((priv->ctrlr_therm_alert_val)==0)?"bad":"good");
     return sprintf(buf, "%d\n", priv->psu_pgood_val);
 }
 	
@@ -75,8 +75,8 @@ static DEVICE_ATTR(psu_pgood, S_IRUGO, show_psu_pgood_stat, NULL);
 static DEVICE_ATTR(ctrlr_eeprom_wp, S_IWUSR | S_IRUGO, show_ctrlr_eeprom_wp, set_ctrlr_eeprom_wp);
 
 static struct attribute *anode_ctrl_attrs[] = {
-	&dev_ctrlr_therm_alert.attr,
-	&dev_psu_pgood.attr,
+	&dev_attr_ctrlr_therm_alert.attr,
+	&dev_attr_psu_pgood.attr,
 	&dev_attr_ctrlr_eeprom_wp.attr,
 	NULL,
 };
@@ -102,27 +102,27 @@ int anode_ctrl_parse_dt(struct platform_device *pdev)
 	}
 
     /* controller power good status */ 
-    priv->ctrlr_psu_pgood_gpio = of_get_named_gpio(np, "psu-pgood", 0);
-    if (priv->ctrlr_psu_pgood_gpio < 0) {
+    priv->psu_pgood_gpio = of_get_named_gpio(np, "psu-pgood", 0);
+    if (priv->psu_pgood_gpio < 0) {
         dev_err(&pdev->dev, "Can't read gpio psu-pgood.\n");
         return -EINVAL;
     }     
 
 	/* Controller board EEPROM write protect */
-	priv->ctrlr_eeprom_wp_enable_gpio = of_get_named_gpio(np, "eeprom-wp-enable", 0);
-	if (priv->ctrlr_eeprom_wp_enable_gpio < 0) {
+	priv->eeprom_wp_enable_gpio = of_get_named_gpio(np, "eeprom-wp-enable", 0);
+	if (priv->eeprom_wp_enable_gpio < 0) {
 		dev_err(&pdev->dev, "Can't read Controller board gpio eeprom-wp-enable\n");
 		return -EINVAL;
 	}
 
-	ret = of_property_read_u32(np, "eeprom-wp-enable-default", &priv->ctlr_eeprom_wp_enable_default);
+	ret = of_property_read_u32(np, "eeprom-wp-enable-default", &priv->eeprom_wp_enable_default);
 	if (ret < 0) {
 		dev_err(&pdev->dev, "Can't read Controller EEPROM write protect default value from device tree.\n");
 		return ret;
 	}
 
-	priv->ctrlr_eeprom_wp_enable_val = priv->ctrlr_eeprom_wp_enable_default;
-	dev_info(&pdev->dev, "Controller board EEPROM write protect default value read is %d\n", priv->rf_eeprom_wp_en_default);
+	priv->eeprom_wp_enable_val = priv->eeprom_wp_enable_default;
+	dev_info(&pdev->dev, "Controller board EEPROM write protect default value read is %d\n", priv->eeprom_wp_enable_default);
 
 	return 0;
 }
@@ -147,10 +147,10 @@ static int anode_ctrl_probe(struct platform_device *pdev)
 		return ret;
 	}	
 	
-	dev_info(&pdev->dev, "Configure default Anode controls on boot.");
+	dev_info(&pdev->dev, "Configure default Anode controller board on boot.");
    	
 	/* Configuring Controller thermal trip */
-	sprintf(priv->rf_pwr_dis_szGpio, "ctrlr_therm_alert");
+	sprintf(priv->ctrlr_therm_alert_szGpio, "ctrlr_therm_alert");
 	ret = gpio_request(priv->ctrlr_therm_alert_gpio, priv->ctrlr_therm_alert_szGpio);
 	if ( ret )
 	{
@@ -170,7 +170,7 @@ static int anode_ctrl_probe(struct platform_device *pdev)
 	dev_info(&pdev->dev, "Controller thermal trip configured.");
    	
     /* Configure PSU_PGOOD */
-    sprintf(priv->rf_pwr_dis_szGpio, "psu_pgood");
+    sprintf(priv->psu_pgood_szGpio, "psu_pgood");
     ret = gpio_request(priv->psu_pgood_gpio, priv->psu_pgood_szGpio);
     if ( ret )
     {
@@ -190,28 +190,28 @@ static int anode_ctrl_probe(struct platform_device *pdev)
     dev_info(&pdev->dev, "Controller PSU PGOOD status pin configured.");
 
 	/* Configuring Controller board EEPROM */
-	sprintf(priv->ctrl_eeprom_wp_enable_szGpio, "ctrl_eeprom_wp");
-	ret = gpio_request(priv->ctrlr_eeprom_wp_enable_gpio, priv->ctrlr_eeprom_wp_enable_szGpio);
+	sprintf(priv->eeprom_wp_enable_szGpio, "ctrl_eeprom_wp");
+	ret = gpio_request(priv->eeprom_wp_enable_gpio, priv->eeprom_wp_enable_szGpio);
 	if ( ret )
 	{
 		dev_err(&pdev->dev, "Could not obtain GPIO %d: %s\n",
-			priv->ctrlr_eeprom_wp_enable_gpio, priv->ctrlr_eeprom_wp_enable_szGpio);
+			priv->eeprom_wp_enable_gpio, priv->eeprom_wp_enable_szGpio);
 		return ret;
 	}
 
-	ret = gpio_direction_output(priv->ctrlr_eeprom_wp_enable_gpio, priv->ctrlr_eeprom_wp_enable_val);
+	ret = gpio_direction_output(priv->eeprom_wp_enable_gpio, priv->eeprom_wp_enable_val);
 	if ( ret )
 	{
 		dev_err(&pdev->dev, "Could not configure GPIO %d direction: %d\n",
-			priv->ctrlr_eeprom_wp_enable_gpio, ret);
+			priv->eeprom_wp_enable_gpio, ret);
 		return ret;
 	}
 
-	dev_info(&pdev->dev, "Controller board EEPROM write protect is %s.",(priv->ctrlr_eeprom_wp_enable_val==0)?"disabled":"enabled");	
+	dev_info(&pdev->dev, "Controller board EEPROM write protect is %s.",(priv->eeprom_wp_enable_val==0)?"disabled":"enabled");	
 	
 	dev_info(&pdev->dev, "Setting Sysfs for Anode Controller Board.");
 	
-	ret = sysfs_create_group(&priv->dev->kobj, &ocfema_ctrl_attr_group);
+	ret = sysfs_create_group(&priv->dev->kobj, &anode_ctrl_attr_group);
 	if (ret) {
 		dev_err(priv->dev, "unable to create sysfs files\n");
 		return ret;

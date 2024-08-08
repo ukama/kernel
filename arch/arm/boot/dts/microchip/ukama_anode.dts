@@ -14,13 +14,13 @@
 
 / {
 	model = "Ukama Anode Controller board Rev-D";
-	compatible = "ukama,anode-rev-d", "atmel,sama5d27-som1-ek", "atmel,sama5d27-som1", "atmel,sama5d27", "atmel,sama5d2", "atmel,sama5";
+	compatible = "atmel,sama5d27-som1-ek", "atmel,sama5d27-som1", "atmel,sama5d27", "atmel,sama5d2", "atmel,sama5";
 
 	aliases {
 		serial0 = &uart1;	/* DBGU */
 		i2c0	= &i2c0;
 		i2c1	= &i2c1;
-		i2c2	= &i2c2;
+        i2c2    = &i2c3;
 		spi0    = &spi0;
 		spi1 	= &spi1;
 	};
@@ -71,25 +71,25 @@
 			spi0: spi@f8000000 {
 				status = "okay";
 				pinctrl-names = "default";
-                        	pinctrl-0 = <&pinctrl_spi0_default>;
+               	pinctrl-0 = <&pinctrl_spi0_default>;
 				rfpal: sc1894@0 {
 					compatible = "adi,sc1894-userspace";
-                                        reg = <0>; /* CS0 */
+                    reg = <0>; /* CS0 */
 				};
 			};
 			
 			spi1: spi@fc000000 {
-                                status = "okay";
-                                pinctrl-names = "default";
-                                pinctrl-0 = <&pinctrl_spi1_default>;
-                                rfpal2: sc1894@0 {
-                                        compatible = "adi,sc1894-userspace";
-                                        reg = <0>; /* CS0 */
-                                };
-                        };
+                status = "okay";
+                pinctrl-names = "default";
+                inctrl-0 = <&pinctrl_spi1_default>;
+                rfpal2: sc1894@0 {
+                    compatible = "adi,sc1894-userspace";
+                    reg = <0>; /* CS0 */
+                };
+           };
 			
 			qspi1: spi@f0024000 {
-                                status = "okay";
+                status = "okay";
 			};	
 			
 			macb0: ethernet@f8008000 {
@@ -128,7 +128,7 @@
 				atmel,flexcom-mode = <ATMEL_FLEXCOM_MODE_TWI>;
 				status = "okay";
 
-				i2c2: i2c2@600 {
+				i2c3: i2c@600 {
 					compatible = "atmel,sama5d2-i2c";
 					reg = <0x600 0x200>;
 					interrupts = <20 IRQ_TYPE_LEVEL_HIGH 7>;
@@ -162,7 +162,7 @@
                         reg = <0x57>;
 				    }; 
 
-				    f2padac: ad5667@0c {
+				    f2padac: ad5667@c {
 					    compatible = "adi,ad5667 ";
 					    reg = <0x0c>;
 					    vcc-supply = <&padacref>;
@@ -170,8 +170,8 @@
 				};
 			};
 
-			shdwc@f8048010 {
-				atmel,shdwc-debouncer = <976>;
+			poweroff@f8048010 {
+				debounce-delay-us = <976>;
 				atmel,wakeup-rtc-timer;
 
 				input@0 {
@@ -221,7 +221,7 @@
                     reg = <0x57>;
 				}; 
 
-				f1padac: ad5667@0c {
+				f1padac: ad5667@c {
 					compatible = "adi,ad5667 ";
 					reg = <0x0c>;
 					vcc-supply = <&padacref>;
@@ -389,7 +389,7 @@
 					bias-disable;
 				};
 				
-				pinctrl_key_fema_button: fema_button {
+				pinctrl_controller_key_button: fema_button {
 					pinmux = <PIN_PB28__GPIO>;
 					bias-disable;
 				};
@@ -398,7 +398,7 @@
 		};
 	};
 	
-	gpio_keys {
+	gpio-keys {
         compatible = "gpio-keys";
 
         pinctrl-names = "default";
@@ -457,7 +457,7 @@
 	fema2-gpios {
 		compatible = "ukama,fema-gpios";
 		pinctrl-names = "default";
-		pinctrl-0 = <&pinctrlfema2_gpios_default>;
+		pinctrl-0 = <&pinctrl_fema2_gpios_default>;
 		status = "okay"; 
 		
 		pg-reg-5v = <&pioA PIN_PC15 GPIO_ACTIVE_LOW>;

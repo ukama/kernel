@@ -31,8 +31,8 @@ struct anode_fema_priv
     
     int pa_disable_gpio;
     char pa_disable_szGpio[32];
-    u8 ps_disable_val;
-    u32 ps_disable_default;
+    u8 pa_disable_val;
+    u32 pa_disable_default;
 
     int pa_vds_enable_gpio;
     char pa_vds_enable_szGpio[32];
@@ -56,7 +56,7 @@ static ssize_t show_pg_reg_5v(struct device *dev,
 {
     struct anode_fema_priv *priv = dev_get_drvdata(dev);
     dev_info(dev, "Power Good status for 5V reg is in %s state.", ((priv->pg_reg_5v_val)==0)?"bad":"good");
-    return sprintf(buf, "%d\n", priv->rf_therm_trip_val);
+    return sprintf(buf, "%d\n", priv->pg_reg_5v_val);
 }
 
 static ssize_t show_rf_pal_enable(struct device *dev,
@@ -232,7 +232,7 @@ static struct attribute *anode_fema_attrs[] = {
 	&dev_attr_tx_rf_enable.attr,
 	&dev_attr_rx_rf_enable.attr,
     &dev_attr_pa_disable.attr,
-    &dev_attr_pa_vds__enable.attr,
+    &dev_attr_pa_vds_enable.attr,
     &dev_attr_rf_pal_enable.attr,
 	NULL,
 };
@@ -244,8 +244,6 @@ static const struct attribute_group anode_fema_attr_group = {
 int anode_fema_parse_dt(struct platform_device *pdev)
 {
 	int ret = 0; 
-	int nr = 0;
-	int i = 0; 
 	struct device_node *np = pdev->dev.of_node;
 	struct anode_fema_priv *priv = dev_get_drvdata(&pdev->dev);
 	if (!np) {
@@ -363,8 +361,7 @@ static int anode_fema_probe(struct platform_device *pdev)
 { 
 	struct anode_fema_priv *priv;
 	int ret;
-	int i = 0;	
-    	priv = devm_kzalloc(&pdev->dev, sizeof(struct anode_fema_priv), GFP_KERNEL);
+    priv = devm_kzalloc(&pdev->dev, sizeof(struct anode_fema_priv), GFP_KERNEL);
 	if (!priv) {
 		dev_err(priv->dev, "Unable to allocate memory.\n");
 		return -ENOMEM;
@@ -373,14 +370,14 @@ static int anode_fema_probe(struct platform_device *pdev)
 	priv->dev = &pdev->dev;
 	platform_set_drvdata(pdev, priv);
 
-	ret = anode_fema_att_parse_dt(pdev);
+	ret = anode_fema_parse_dt(pdev);
 	if (ret) {	
 		dev_err(&pdev->dev, "Parsing failed for fema-gpios.");
 		return ret;
 	}
     
     /* PG Reg 5V */    
-    sprintf(priv->pg_reg_5p_szGpio, "pg_reg_5v");
+    sprintf(priv->pg_reg_5v_szGpio, "pg_reg_5v");
     ret = gpio_request(priv->pg_reg_5v_gpio, priv->pg_reg_5v_szGpio);
     if ( ret )
     {
@@ -453,7 +450,7 @@ static int anode_fema_probe(struct platform_device *pdev)
             priv->rx_rf_enable_gpio, ret);
         return ret;
     }
-    dev_info(&pdev->dev, "Setting default RX RF Chain enable value to %d.",priv->rx_rf_enable_val)    
+    dev_info(&pdev->dev, "Setting default RX RF Chain enable value to %d.",priv->rx_rf_enable_val);
     
     /* PA Disable  */
     sprintf(priv->pa_disable_szGpio, "pa_disable");
