@@ -570,6 +570,26 @@ config TPS6594_PFSM
 	  This driver can also be built as a module.  If so, the module
 	  will be called tps6594-pfsm.
 
+config UKAMA_ANODE
+       tristate "Ukama Amplifier Node driver."
+       default y
+       help
+          Ukama Amplifier Node driver for config, control and status.
+
+config UKAMA_ANODE_CTRL
+       tristate "Ukama Amplifier Node Controller baord."
+       depends on UKAMA_ANODE
+       default y
+       help
+         Ukama Amplifier Node controller board for enabling and disbaling devices.
+
+config UKAMA_ANODE_FEMA
+       tristate "Ukama Amplifier Node FEMA board."
+       depends on UKAMA_ANODE
+       default y
+       help
+         Ukama Amplifier Node FEMA board status report power goods, controls and alerts.
+
 source "drivers/misc/c2port/Kconfig"
 source "drivers/misc/eeprom/Kconfig"
 source "drivers/misc/cb710/Kconfig"
