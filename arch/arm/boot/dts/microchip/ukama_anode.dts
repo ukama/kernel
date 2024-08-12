@@ -11,6 +11,7 @@
 #include "at91-sama5d27_som1.dtsi"
 #include <dt-bindings/mfd/atmel-flexcom.h>
 #include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/leds/common.h>
 
 / {
 	model = "Ukama Anode Controller board Rev-D";
@@ -18,7 +19,6 @@
 
 	aliases {
 		serial0 = &uart1;	/* DBGU */
-		i2c0	= &i2c0;
 		i2c1	= &i2c1;
         i2c2    = &i2c3;
 		spi0    = &spi0;
@@ -36,18 +36,7 @@
 			pinctrl-0 = <&pinctrl_usba_vbus>;
 			status = "okay";
 		};
-
-		usb1: ohci@400000 {
-			num-ports = <3>;
-			atmel,vbus-gpio = <0 /* &pioA PIN_PD20 GPIO_ACTIVE_HIGH */
-					   &pioA PIN_PA27 GPIO_ACTIVE_HIGH
-					   0
-					  >;
-			pinctrl-names = "default";
-			pinctrl-0 = <&pinctrl_usb_default>;
-			status = "okay";
-		};
-
+        
 		usb2: ehci@500000 {
 			status = "okay";
 		};
@@ -89,7 +78,7 @@
            };
 			
 			qspi1: spi@f0024000 {
-                status = "okay";
+                status = "disabled";
 			};	
 			
 			macb0: ethernet@f8008000 {
@@ -116,31 +105,21 @@
 				status = "okay";
 			};
 
-			i2c0: i2c@f8028000 {
-				dmas = <0>, <0>;
-				pinctrl-names = "default";
-				pinctrl-0 = <&pinctrl_i2c0_default>;
-				status = "okay";
-			};
-
-
 			flx1: flexcom@f8038000 {
 				atmel,flexcom-mode = <ATMEL_FLEXCOM_MODE_TWI>;
 				status = "okay";
 
 				i2c3: i2c@600 {
-					compatible = "atmel,sama5d2-i2c";
-					reg = <0x600 0x200>;
-					interrupts = <20 IRQ_TYPE_LEVEL_HIGH 7>;
-					dmas = <0>, <0>;
-					dma-names = "tx", "rx";
-					#address-cells = <1>;
-					#size-cells = <0>;
-					clocks = <&pmc PMC_TYPE_PERIPHERAL 20>;
-					pinctrl-names = "default";
-					pinctrl-0 = <&pinctrl_i2c2_default>;
-					atmel,fifo-size = <16>;
-					status = "okay";
+    				dmas = <0>, <0>;
+                    i2c-analog-filter;
+                    i2c-digital-filter;
+                    i2c-digital-filter-width-ns = <35>;
+                    pinctrl-names = "default", "gpio";
+                    pinctrl-0 = <&pinctrl_mikrobus_i2c>;
+                    pinctrl-1 = <&pinctrl_i2c3_gpio>;
+                    sda-gpios = <&pioA PIN_PA24 GPIO_ACTIVE_HIGH>;
+                    scl-gpios = <&pioA PIN_PA23 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
+                    status = "okay";
 			        
                     /* FEMA 2 */
 				    f2lm75: lm75@49 {
@@ -185,13 +164,19 @@
 			};
             
 			i2c1: i2c@fc028000 {
-				dmas = <0>, <0>;
-				pinctrl-names = "default";
-				pinctrl-0 = <&pinctrl_i2c1_default>;
-				status = "okay";
-				
+			    dmas = <0>, <0>;
+                i2c-analog-filter;
+                i2c-digital-filter;
+                i2c-digital-filter-width-ns = <35>;
+                pinctrl-names = "default", "gpio";
+                pinctrl-0 = <&pinctrl_i2c1_default>;
+                pinctrl-1 = <&pinctrl_i2c1_gpio>;
+                sda-gpios = <&pioA PIN_PD4 GPIO_ACTIVE_HIGH>;
+                scl-gpios = <&pioA PIN_PD5 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
+                status = "okay";
+	
                 /* Controller Board */
-				se982: se98@18 {
+				se98: se98@18 {
 					compatible = "jedec,jc-42.4-temp";
 					reg = <0x18>;
 				};
@@ -222,8 +207,8 @@
 				}; 
 
 				f1padac: ad5667@c {
-					compatible = "adi,ad5667 ";
-					reg = <0x0c>;
+					compatible = "adi,ad5667";
+					reg = <0xc>;
 					vcc-supply = <&padacref>;
 				};
 			};
@@ -240,8 +225,8 @@
                     pinmux = <PIN_PA14__SPI0_SPCK>,
                              <PIN_PA15__SPI0_MOSI>,
 				       	     <PIN_PA16__SPI0_MISO>,
-				             <PIN_PA17__SPI0_NPCS0>,
-				             <PIN_PA27__SPI0_NPCS2>;
+				             <PIN_PA17__SPI0_NPCS0>;
+				             /*<PIN_PA27__SPI0_NPCS2>;*/
                     bias-pull-up;
                 };
 				
@@ -254,17 +239,17 @@
                     bias-pull-up;
                 };
 
-				pinctrl_i2c0_default: i2c0_default {
-					pinmux = <PIN_PD21__TWD0>,
-						 <PIN_PD22__TWCK0>;
-					bias-disable;
-				};
-
 				pinctrl_i2c1_default: i2c1_default {
 					pinmux = <PIN_PD4__TWD1>,
 						 <PIN_PD5__TWCK1>;
 					bias-disable;
 				};
+                
+                pinctrl_i2c1_gpio: i2c1_gpio {
+                    pinmux = <PIN_PD4__GPIO>,
+                         <PIN_PD5__GPIO>;
+                    bias-disable;
+                };
 
 				pinctrl_controller_led1_default: controller_led1_default {
 					 pinmux = <PIN_PA31__GPIO>,
@@ -382,17 +367,28 @@
 					pinmux = <PIN_PD20__GPIO>;
 					bias-disable;
 				};
+                
+                pinctrl_mikrobus_i2c: mikrobus1_i2c {
+                    pinmux = <PIN_PA24__FLEXCOM1_IO0>,
+                         <PIN_PA23__FLEXCOM1_IO1>;
+                    bias-disable;
+                };
 
-				pinctrl_i2c2_default: i2c2_default {
-					pinmux = <PIN_PA24__FLEXCOM1_IO0>,
-						 <PIN_PA23__FLEXCOM1_IO1>;
-					bias-disable;
-				};
-				
+                pinctrl_i2c3_gpio: i2c3_gpio {
+                    pinmux = <PIN_PA24__GPIO>,
+                         <PIN_PA23__GPIO>;
+                    bias-disable;
+                };
+
 				pinctrl_controller_key_button: fema_button {
 					pinmux = <PIN_PB28__GPIO>;
 					bias-disable;
 				};
+                
+                pinctrl_hwwatchdog_gpio_default: hwwatchdog_gpio {
+                    pinmux = <PIN_PB7__GPIO>;
+                    bias-disable;
+                };   
 			};
 			
 		};
@@ -481,11 +477,14 @@
 		rf-pal-enable-default = <0>;
 	};
 
-	watchdog {
+	hw-watchdog {
 		compatible = "linux,wdt-gpio";
-		gpios = <&pioA PIN_PB7 GPIO_ACTIVE_LOW>;
+        pinctrl-names = "default";
+        pinctrl-0 = <&pinctrl_hwwatchdog_gpio_default>;
+        gpios = <&pioA PIN_PB7 GPIO_ACTIVE_LOW>;
 		hw_algo = "toggle";
-		hw_margin_ms = <1120>;		
+		hw_margin_ms = <17900>;
+        always-running;		
 	};
 	
 	led1 {
@@ -497,16 +496,19 @@
 		red1 {
 			label = "red1";
 			gpios = <&pioA PIN_PA31 GPIO_ACTIVE_HIGH>;
+            color = <LED_COLOR_ID_RED>;
 		};
 
 		green1 {
 			label = "green1";
 			gpios = <&pioA PIN_PB1 GPIO_ACTIVE_HIGH>;
+            color = <LED_COLOR_ID_GREEN>;
 		};
 
 		blue1 {
 			label = "blue1";
 			gpios = <&pioA PIN_PA25 GPIO_ACTIVE_HIGH>;
+            color = <LED_COLOR_ID_BLUE>;
 			linux,default-trigger = "heartbeat";
 		};
 	};
@@ -520,16 +522,19 @@
 		red2 {
 			label = "red2";
 			gpios = <&pioA PIN_PA11 GPIO_ACTIVE_HIGH>;
+            color = <LED_COLOR_ID_RED>;
 		};
 
 		green2 {
 			label = "green2";
 			gpios = <&pioA PIN_PA10 GPIO_ACTIVE_HIGH>;
+            color = <LED_COLOR_ID_GREEN>;
 		};
 
 		blue2 {
 			label = "blue2";
 			gpios = <&pioA PIN_PA12 GPIO_ACTIVE_HIGH>;
+            color = <LED_COLOR_ID_BLUE>;
 			default-state = "on";
 			linux,default-trigger = "default-on";
 		};
@@ -543,17 +548,20 @@
 
 		red3 {
 			label = "red3";
-			gpios = <&pioA PIN_PA15 GPIO_ACTIVE_HIGH>;
+			gpios = <&pioA PIN_PB25 GPIO_ACTIVE_HIGH>;
+            color = <LED_COLOR_ID_RED>;
 		};
 
 		green3 {
 			label = "green3";
-			gpios = <&pioA PIN_PA13 GPIO_ACTIVE_HIGH>;
+			gpios = <&pioA PIN_PA27 GPIO_ACTIVE_HIGH>;
+            color = <LED_COLOR_ID_GREEN>;
 		};
 
 		blue3 {
 			label = "blue3";
-			gpios = <&pioA PIN_PA14 GPIO_ACTIVE_HIGH>;
+			gpios = <&pioA PIN_PB24 GPIO_ACTIVE_HIGH>;
+            color = <LED_COLOR_ID_BLUE>;
 			default-state = "on";
 			linux,default-trigger = "default-on";
 		};
@@ -567,17 +575,20 @@
 
 		red4 {
 			label = "red4";
-			gpios = <&pioA PIN_PA17 GPIO_ACTIVE_HIGH>;
+			gpios = <&pioA PIN_PB11 GPIO_ACTIVE_HIGH>;
+            color = <LED_COLOR_ID_RED>;
 		};
 
 		green4 {
 			label = "green4";
-			gpios = <&pioA PIN_PA16 GPIO_ACTIVE_HIGH>;
+			gpios = <&pioA PIN_PB9 GPIO_ACTIVE_HIGH>;
+            color = <LED_COLOR_ID_GREEN>;
 		};
 
 		blue4 {
 			label = "blue4";
-			gpios = <&pioA PIN_PA26 GPIO_ACTIVE_HIGH>;
+			gpios = <&pioA PIN_PA29 GPIO_ACTIVE_HIGH>;
+            color = <LED_COLOR_ID_BLUE>;
 			default-state = "on";
 			linux,default-trigger = "default-on";
 		};
