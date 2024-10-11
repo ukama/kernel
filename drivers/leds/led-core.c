@@ -426,9 +426,11 @@ static void led_parse_fwnode_props(struct device *dev,
 		return;
 
 	if (fwnode_property_present(fwnode, "label")) {
-		ret = fwnode_property_read_string(fwnode, "label", &props->label);
+        ret = fwnode_property_read_string(fwnode, "label", &props->label);
 		if (ret)
 			dev_err(dev, "Error parsing 'label' property (%d)\n", ret);
+		
+        dev_info(dev, "LED label %s found.", props->label); 
 		return;
 	}
 
@@ -440,6 +442,8 @@ static void led_parse_fwnode_props(struct device *dev,
 			dev_err(dev, "LED color identifier out of range\n");
 		else
 			props->color_present = true;
+
+        dev_info(dev, "LED color %d found.", props->color);
 	}
 
 

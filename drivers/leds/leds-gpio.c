@@ -256,9 +256,12 @@ static struct gpio_desc *gpio_led_get_gpiod(struct device *dev, int idx,
 
 static int gpio_led_probe(struct platform_device *pdev)
 {
-	struct gpio_led_platform_data *pdata = dev_get_platdata(&pdev->dev);
+    dev_info(&pdev->dev, "Started parsing DT LED's.\n");
+	
+    struct gpio_led_platform_data *pdata = dev_get_platdata(&pdev->dev);
 	struct gpio_leds_priv *priv;
 	int i, ret = 0;
+    
 
 	if (pdata && pdata->num_leds) {
 		priv = devm_kzalloc(&pdev->dev, struct_size(priv, leds, pdata->num_leds),
@@ -282,7 +285,8 @@ static int gpio_led_probe(struct platform_device *pdev)
 					 template->gpio, template->name);
 				continue;
 			}
-
+            dev_info(&pdev->dev, "Creating LED gpio %d (%s)\n",
+                     template->gpio, template->name);
 			ret = create_gpio_led(template, led_dat,
 					      &pdev->dev, NULL,
 					      pdata->gpio_blink_set);

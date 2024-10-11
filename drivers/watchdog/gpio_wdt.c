@@ -118,7 +118,8 @@ static int gpio_wdt_probe(struct platform_device *pdev)
 		return -ENOMEM;
 
 	platform_set_drvdata(pdev, priv);
-
+    
+    dev_info(&pdev->dev, "Started parsing DT watchdog.");
 	ret = of_property_read_string(np, "hw_algo", &algo);
 	if (ret)
 		return ret;
@@ -163,7 +164,8 @@ static int gpio_wdt_probe(struct platform_device *pdev)
 
 	if (priv->always_running)
 		gpio_wdt_start(&priv->wdd);
-
+    
+    dev_info(&pdev->dev, "Started watchdog with %dms heartbeat.", priv->wdd.max_hw_heartbeat_ms);
 	return devm_watchdog_register_device(dev, &priv->wdd);
 }
 
