@@ -142,9 +142,8 @@
 				    }; 
 
 				    f2padac: ad5667@c {
-					    compatible = "adi,ad5667 ";
+					    compatible = "adi,ad5667r-2v5";
 					    reg = <0x0c>;
-					    vcc-supply = <&padacref>;
 				    };
 				};
 			};
@@ -207,9 +206,8 @@
 				}; 
 
 				f1padac: ad5667@c {
-					compatible = "adi,ad5667";
+					compatible = "adi,ad5667r-2v5";
 					reg = <0xc>;
-					vcc-supply = <&padacref>;
 				};
 			};
 
