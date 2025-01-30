@@ -65,7 +65,7 @@ $(OS_ARTIFACTS): info
 	(mkdir -p $(ROOTFS_KPATH) && cp -v $(SRC_DIR)/arch/${ARCH}/boot/$(KIMAGE) $(ROOTFS_KPATH)/$(KIMAGE))
 	#Install Modules
 	$(MAKE) -j$(NPROCS) -C $(SRC_DIR) ARCH=$(ARCH) CROSS_COMPILE=$(CC) INSTALL_MOD_PATH=$(ROOTFS_KPATH) modules_install
-ifeq ($(ARCH), $(ARCHARM))
+ifeq ($(ARCH), $(ARCH_ARM))
 	#Install DTBS
 	$(MAKE) -j$(NPROCS) -C $(SRC_DIR) ARCH=$(ARCH) CROSS_COMPILE=$(CC) INSTALL_DTBS_PATH=$(ROOTFS_KPATH)/boot dtbs_install
 endif
