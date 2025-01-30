@@ -6,77 +6,90 @@
 
 include ../config.mk 
 
-CURMAKE := $(abspath $(firstword $(MAKEFILE_LIST)))
-CURPATH := $(dir $(CURMAKE))
+CUR_MAKE := $(abspath $(firstword $(MAKEFILE_LIST)))
+CUR_PATH := $(dir $(CUR_MAKE))
 
 #Source directory
-SRCDIR = linux
+SRC_DIR = linux
 
-#Output
-ifndef ROOTFSPATH
-override ROOTFSPATH = $(CURPATH)_ukamafs
-endif
-ROOTFSKPATH=$(ROOTFSPATH)/boot
+ROOTFS_KPATH=$(CUR_PATH)/build
 
 # Config for Builds
 ANODE_KCONFIG = ukama_anode_defconfig
 CNODE_KCONFIG = comNode_lk_defconfig
 
-#Set build parameters based on targets
-ifeq ($(ANODEBOARD), $(TARGETBOARD))
-KIMAGE = zImage
-override CC = arm-linux-gnueabihf-
-override ARCH = arm
-KCONFIG = $(ANODE_KCONFIG)
-OS_ARTIFACTS = $(KIMAGE) modules dtbs
+# Detect target board and set appropriate variables
+ifeq ($(AMPLIFIER_NODE), $(TARGET_BOARD))
+	override CC   = arm-linux-gnueabihf-
+	override HOST = arm-linux-gnueabihf
+	override ARCH = $(ARCH_ARM)
+	SRC_DIRS      = $(AMPLIFIER_TARGET)
+	KCONFIG       = $(ANODE_KCONFIG) 
+	KIMAGE        = zImage
+	OS_ARTIFACTS  = $(KIMAGE) modules dtbs
 endif
 
-ifeq ($(CNODEBOARD), $(TARGETBOARD))
-KIMAGE = bzImage
-override CC = 
-override ARCH = x86_64
-KCONFIG = $(CNODE_KCONFIG)
-OS_ARTIFACTS = $(KIMAGE) modules
+ifeq ($(TOWER_NODE), $(TARGET_BOARD))
+	override ARCH   = $(ARCH_X86_64)
+	override HOST   = x86_64-linux-musl
+	KCONFIG         = $(CNODE_KCONFIG)
+	KIMAGE          = bzImage
+        OS_ARTIFACTS    = $(KIMAGE) modules
 endif
 
-ifeq ($(LOCAL), $(TARGETBOARD))
-KIMAGE = bzImage
-override CC =
-override ARCH = x86_64
-KCONFIG = $(CNODE_KCONFIG)
-OS_ARTIFACTS = $(KIMAGE) modules
+ifeq ($(ACCESS_NODE), $(TARGET_BOARD))
+	override CC     = aarch64-linux-gnu-gcc
+	override HOST   = aarch64-linux-gnu
+	override ARCH   = arm64
 endif
 
+ifeq ($(LOCAL), $(TARGET_BOARD))
+	override CC     = gcc
+	override ARCH   = $(ARCH_X86_64)
+	override HOST   = $(shell gcc -dumpmachine)
+        KCONFIG         = $(CNODE_KCONFIG)
+	KIMAGE          = bzImage
+	OS_ARTIFACTS    = $(KIMAGE) modules
+endif
 
-#Targets based on boards
-.PHONY: subdirs $(SRCDIR) info
+.PHONY: $(SRC_DIR) info clean distclean
+
 
 #Kernel Image
-$(OS_ARTIFACTS):
+$(OS_ARTIFACTS): info
 	@echo Building $@
-	$(MAKE) -j$(NPROCS) -C $(SRCDIR) ARCH=$(ARCH) CROSS_COMPILE=$(CC) $(KCONFIG)
-	$(MAKE) -j$(NPROCS) -C $(SRCDIR) ARCH=$(ARCH) CROSS_COMPILE=$(CC) $(OS_ARTIFACTS)
+	$(MAKE) -j$(NPROCS) -C $(SRC_DIR) ARCH=$(ARCH) CROSS_COMPILE=$(CC) $(KCONFIG)
+	$(MAKE) -j$(NPROCS) -C $(SRC_DIR) ARCH=$(ARCH) CROSS_COMPILE=$(CC) $(OS_ARTIFACTS)
 	#Copy Kernel Image
-	@echo Copying Kernel Image $(SRCDIR)/arch/${ARCH}/boot/$(KIMAGE)
-	(mkdir -p $(ROOTFSKPATH) && cp -v $(SRCDIR)/arch/${ARCH}/boot/$(KIMAGE) $(ROOTFSKPATH)/$(KIMAGE))
+	@echo Copying Kernel Image $(SRC_DIR)/arch/${ARCH}/boot/$(KIMAGE)
+	(mkdir -p $(ROOTFS_KPATH) && cp -v $(SRC_DIR)/arch/${ARCH}/boot/$(KIMAGE) $(ROOTFS_KPATH)/$(KIMAGE))
 	#Install Modules
-	$(MAKE) -j$(NPROCS) -C $(SRCDIR) ARCH=$(ARCH) CROSS_COMPILE=$(CC) INSTALL_MOD_PATH=$(ROOTFSPATH) modules_install
+	$(MAKE) -j$(NPROCS) -C $(SRC_DIR) ARCH=$(ARCH) CROSS_COMPILE=$(CC) INSTALL_MOD_PATH=$(ROOTFS_KPATH) modules_install
 ifeq ($(ARCH), $(ARCHARM))
 	#Install DTBS
-	$(MAKE) -j$(NPROCS) -C $(SRCDIR) ARCH=$(ARCH) CROSS_COMPILE=$(CC) INSTALL_DTBS_PATH=$(ROOTFSPATH)/boot dtbs_install
+	$(MAKE) -j$(NPROCS) -C $(SRC_DIR) ARCH=$(ARCH) CROSS_COMPILE=$(CC) INSTALL_DTBS_PATH=$(ROOTFS_KPATH)/boot dtbs_install
 endif
 
 clean :
-	rm -rf $(ROOTFSPATH);
-	for dir in $(SRCDIR); do \
+	rm -rf $(ROOTFS_KPATH);
+	for dir in $(SRC_DIR); do \
                 $(MAKE) -j$(NPROCS) -C $$dir -f Makefile $@; \
         done
 
 distclean :
-	rm -rf $(ROOTFSPATH);
-	for dir in $(SRCDIR); do \
+	rm -rf $(ROOTFS_KPATH);
+	for dir in $(SRC_DIR); do \
                 $(MAKE) -j$(NPROCS) -C $$dir -f Makefile $@; \
         done
 
-info:  
-	$(info [$@] Building $(TARGETBOARD) for $(ARCH) with $(CC) )
+info:
+	@echo "================================="
+	@echo " Building Info "
+	@echo "---------------------------------"
+	@echo " Target Board  : $(TARGET_BOARD)"
+	@echo " Source Dir   : $(SRC_DIR)"
+	@echo " Architecture  : $(ARCH)"
+	@echo " Compiler      : $(CC)"
+	@echo " Config        : $(KCONFIG)"
+	@echo " OS Artifacts  : $(OS_ARTIFACTS)"
+	@echo "================================="
